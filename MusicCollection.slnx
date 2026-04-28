@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
+  </Folder>
+  <Project Path="MusicCollection.Core/MusicCollection.Core.csproj" />
+  <Project Path="MusicCollection.Models/MusicCollection.Models.csproj" />
+  <Project Path="MusicCollection.TestApp/MusicCollection.TestApp.csproj" Id="c1a45e42-0d9d-430f-b344-237a74020ac3" />
+</Solution>
