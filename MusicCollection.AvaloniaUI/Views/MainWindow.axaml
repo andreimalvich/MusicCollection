@@ -1,0 +1,128 @@
+﻿<Window xmlns="https://github.com/avaloniaui"
+		xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+		xmlns:vm="using:MusicCollection.AvaloniaUI.ViewModels"
+		xmlns:conv="using:MusicCollection.AvaloniaUI.Converters"
+		xmlns:models="using:MusicCollection.Models.Entities"        
+		xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+		xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+		mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+		x:Class="MusicCollection.AvaloniaUI.Views.MainWindow"
+		x:DataType="vm:MainWindowViewModel"
+		Icon="/Assets/avalonia-logo.ico"
+		Title="Моя CD Коллекция"
+		WindowStartupLocation="CenterScreen"
+		Width="1100" Height="750"
+		>
+    
+    <Window.Resources>
+		<!-- Конвертер: преобразует byte[] в Bitmap или подставляет заглушку -->
+		<conv:BitmapAssetValueConverter x:Key="ByteToBitmapConverter"/>
+	</Window.Resources>
+
+	<Design.DataContext>		
+		<vm:MainWindowViewModel/>
+	</Design.DataContext>
+
+	<!-- Основная сетка окна -->
+	<Grid ColumnDefinitions="280, 4 *" RowDefinitions="*, 4, 280">
+
+		<!-- ЛЕВАЯ ПАНЕЛЬ: Список групп -->
+		<Border Grid.Column="0" Grid.Row="0" Grid.RowSpan="3"
+				Background="#FFF3F3F3" BorderBrush="Silver" BorderThickness="0,0,1,0">
+			<DockPanel>
+				<TextBlock DockPanel.Dock="Top" Text="Исполнители" 
+                           FontSize="18" FontWeight="Bold" Margin="15,15,15,5"/>
+				
+				<ListBox ItemsSource="{Binding Artists}" 
+                         SelectedItem="{Binding SelectedArtist}"
+                         Background="Transparent" Margin="5">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="models:Artist">
+                            <TextBlock Text="{Binding Name}" FontSize="15" Padding="5"/>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+			</DockPanel>
+		</Border>
+
+		<!-- Вертикальный разделитель -->
+		<GridSplitter Grid.Column="1" Grid.Row="0" Grid.RowSpan="3" 
+                      Background="Transparent" ResizeDirection="Columns"/>
+
+		<!-- ПРАВАЯ ВЕРХНЯЯ ПАНЕЛЬ: Галерея альбомов -->
+		<ScrollViewer Grid.Column="2" Grid.Row="0" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <TextBlock Text="Альбомы" FontSize="18" FontWeight="Bold" Margin="15,15,15,5"/>
+                
+                <ListBox ItemsSource="{Binding Albums}" 
+                         SelectedItem="{Binding SelectedAlbum}"
+                         Background="Transparent">
+                    <ListBox.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <!-- WrapPanel создает эффект плитки -->
+                            <WrapPanel Orientation="Horizontal" HorizontalAlignment="Left"/>
+                        </ItemsPanelTemplate>
+                    </ListBox.ItemsPanel>
+                    
+                    <ListBox.ItemTemplate>
+                        <DataTemplate x:DataType="models:Album">
+                            <StackPanel Width="180" Margin="10" Spacing="4">
+                                <Border CornerRadius="8" ClipToBounds="True"
+                                        Background="DarkGray"
+                                        BoxShadow="0 2 10 0 #30000000">
+
+                                    <!-- Привязка к Image.Data через конвертер -->                                    
+                                    <Image Source="{Binding Image.Data, Converter={StaticResource ByteToBitmapConverter}}"
+                                           Width="180" Height="180"
+                                           Stretch="UniformToFill"/>                                
+                                </Border>
+                                
+                                <TextBlock Text="{Binding Title}" FontWeight="Bold" 
+                                           HorizontalAlignment="Center" TextAlignment="Center" 
+                                           TextWrapping="Wrap" MaxLines="2"/>
+                                <TextBlock Text="{Binding ReleaseYear}" FontSize="12" 
+                                           Opacity="0.6" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Горизонтальный разделитель -->
+        <GridSplitter Grid.Column="2" Grid.Row="1" 
+                      Background="Silver" ResizeDirection="Rows"/>
+
+        <!-- НИЖНЯЯ ПАНЕЛЬ: Список треков -->
+        <Border Grid.Column="2" Grid.Row="2" Background="White">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="15,10">
+                    <TextBlock Text="Треклист: " FontSize="16" FontWeight="SemiBold"/>
+                    <TextBlock Text="{Binding SelectedAlbum.Title}" FontSize="16" 
+                               FontStyle="Italic" Foreground="Gray" Margin="5,0,0,0"/>
+                </StackPanel>
+
+                <DataGrid ItemsSource="{Binding Tracks}" 
+                          AutoGenerateColumns="False" 
+                          IsReadOnly="True"
+                          CanUserResizeColumns="True"
+                          GridLinesVisibility="Horizontal"
+                          Margin="10,0,10,10">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="№" Binding="{Binding Number}" Width="50"/>
+                        <DataGridTextColumn Header="Название трека" Binding="{Binding Title}" Width="*"/>
+                        <DataGridTextColumn Header="Длительность" 
+                                            Binding="{Binding Duration, StringFormat='\{0:mm\\:ss\}'}" 
+                                            Width="120"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </DockPanel>
+        </Border>
+
+
+
+	</Grid>
+
+
+
+</Window>

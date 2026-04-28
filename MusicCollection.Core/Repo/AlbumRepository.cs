@@ -32,4 +32,14 @@ internal class AlbumRepository : BaseRepository<Album>, IAlbumRepository
                 .ThenInclude(d => d.Tracks.OrderBy(t => t.Number))
             .FirstOrDefaultAsync(a => a.Id == albumId);
     }
+
+    public async Task<List<Album>> GetByArtistWithImagesAsync(int artistId)
+    {
+        return await Table 
+            .AsNoTracking() 
+            .Where(a => a.ArtistId == artistId)
+            .Include(a => a.Image) 
+            .OrderByDescending(a => a.ReleaseYear)
+            .ToListAsync();
+    }
 }

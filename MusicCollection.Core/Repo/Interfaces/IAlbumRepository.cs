@@ -9,4 +9,6 @@ public interface IAlbumRepository : IRepository<Album>
 
     // Метод для получения всей структуры альбома (диски и треки)
     Task<Album?> GetFullAlbumDetailsAsync(int albumId);
+
+    Task<List<Album>> GetByArtistWithImagesAsync(int artistId);
 }

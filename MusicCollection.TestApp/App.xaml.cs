@@ -15,7 +15,7 @@ public partial class App : Application
             var contextFactory = new ApplicationDbContextFactory();
             using (var context = contextFactory.CreateDbContext(Array.Empty<string>()))
             {
-                SampleDataInitializer.InitializeDataII(context);
+                SampleDataInitializer.InitializeData(context);
             }
         }
         catch (Exception ex) 

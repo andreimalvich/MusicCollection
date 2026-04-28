@@ -2,6 +2,7 @@
   <Folder Name="/Solution Items/">
     <File Path=".editorconfig" />
   </Folder>
+  <Project Path="MusicCollection.AvaloniaUI/MusicCollection.AvaloniaUI.csproj" Id="5cfe9a64-fff4-4cc2-bd91-0d4af7c9884e" />
   <Project Path="MusicCollection.Core/MusicCollection.Core.csproj" />
   <Project Path="MusicCollection.Models/MusicCollection.Models.csproj" />
   <Project Path="MusicCollection.TestApp/MusicCollection.TestApp.csproj" Id="c1a45e42-0d9d-430f-b344-237a74020ac3" />
