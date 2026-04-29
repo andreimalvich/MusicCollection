@@ -2,127 +2,320 @@
 		xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
 		xmlns:vm="using:MusicCollection.AvaloniaUI.ViewModels"
 		xmlns:conv="using:MusicCollection.AvaloniaUI.Converters"
-		xmlns:models="using:MusicCollection.Models.Entities"        
+		xmlns:models="using:MusicCollection.Models.Entities"
 		xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
 		xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-		mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+		mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="750"
 		x:Class="MusicCollection.AvaloniaUI.Views.MainWindow"
 		x:DataType="vm:MainWindowViewModel"
 		Icon="/Assets/avalonia-logo.ico"
 		Title="Моя CD Коллекция"
-		WindowStartupLocation="CenterScreen"
-		Width="1100" Height="750"
-		>
-    
-    <Window.Resources>
+		WindowDecorations="None"
+		Width="1100" Height="750" >
+
+	<Window.Resources>
 		<!-- Конвертер: преобразует byte[] в Bitmap или подставляет заглушку -->
 		<conv:BitmapAssetValueConverter x:Key="ByteToBitmapConverter"/>
 	</Window.Resources>
 
-	<Design.DataContext>		
+	<Design.DataContext>
 		<vm:MainWindowViewModel/>
 	</Design.DataContext>
 
-	<!-- Основная сетка окна -->
-	<Grid ColumnDefinitions="280, 4 *" RowDefinitions="*, 4, 280">
+	<!-- Стиль для заголовка группы дисков -->
+	<Window.Styles>
+		<!-- Базовый стиль для элемента списка альбомов -->
+		<Style Selector="ListBoxItem">
+			<Setter Property="Background" Value="Transparent"/>
+			<Setter Property="Padding" Value="0"/>
+			<Setter Property="Margin" Value="5"/>
+			<!-- Плавность анимации -->
+			<Setter Property="Transitions">
+				<Transitions>
+					<TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.2" Easing="CubicEaseOut"/>
+				</Transitions>
+			</Setter>
+		</Style>
 
-		<!-- ЛЕВАЯ ПАНЕЛЬ: Список групп -->
-		<Border Grid.Column="0" Grid.Row="0" Grid.RowSpan="3"
-				Background="#FFF3F3F3" BorderBrush="Silver" BorderThickness="0,0,1,0">
-			<DockPanel>
-				<TextBlock DockPanel.Dock="Top" Text="Исполнители" 
-                           FontSize="18" FontWeight="Bold" Margin="15,15,15,5"/>
-				
-				<ListBox ItemsSource="{Binding Artists}" 
-                         SelectedItem="{Binding SelectedArtist}"
-                         Background="Transparent" Margin="5">
-                    <ListBox.ItemTemplate>
-                        <DataTemplate x:DataType="models:Artist">
-                            <TextBlock Text="{Binding Name}" FontSize="15" Padding="5"/>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
-			</DockPanel>
+		<!-- Эффект при наведении мыши (чуть увеличиваем) -->
+		<Style Selector="ListBoxItem:pointerover">
+			<Setter Property="RenderTransform" Value="scale(1.02)"/>
+		</Style>
+
+		<!-- Эффект ВЫБРАННОГО альбома (масштаб + жирная тень) -->
+		<Style Selector="ListBoxItem:selected">
+			<Setter Property="RenderTransform" Value="scale(1.05)"/>
+			<Setter Property="ZIndex" Value="10"/> <!-- Чтобы выбранный альбом был поверх соседей -->
+		</Style>
+
+		<!-- Находим Border внутри выбранного ListBoxItem и меняем ему тень -->
+		<Style Selector="ListBoxItem:selected Border">
+			<Setter Property="BoxShadow" Value="0 10 20 0 #60000000"/>
+			<Setter Property="BorderBrush" Value="SteelBlue"/>
+			<Setter Property="BorderThickness" Value="2"/>
+		</Style>
+
+		<!-- Стиль для кнопок заголовка -->
+		<Style Selector="Button.TitleBtn">
+			<Setter Property="Width" Value="45"/>
+			<Setter Property="Height" Value="32"/>
+			<Setter Property="Background" Value="Transparent"/>
+			<Setter Property="BorderThickness" Value="0"/>
+			<Setter Property="Foreground" Value="White"/>
+			<Setter Property="CornerRadius" Value="0"/>
+			<Setter Property="HorizontalContentAlignment" Value="Center"/>
+		</Style>
+		<!-- Эффект наведения для кнопки закрытия -->
+		<Style Selector="Button.TitleBtn:pointerover /template/ ContentPresenter">
+			<Setter Property="Background" Value="#44ffffff"/>
+		</Style>
+		<Style Selector="Button#CloseBtn:pointerover /template/ ContentPresenter">
+			<Setter Property="Background" Value="Red"/>
+		</Style>
+
+		<!--Отменяем стиль границ для пунктов контекстного меню -->
+		<Style Selector="ListBox.NoBorder ListBoxItem:selected Border">
+			<Setter Property="BorderThickness" Value="0" />
+		</Style>
+		
+
+	</Window.Styles>
+
+	<!-- Основная сетка окна -->
+	<Grid RowDefinitions="Auto, Auto, *">
+
+		<!--1. Заголовок NEW (TitleBar) -->
+		<Border Grid.Row="0" Name="TitleBar" Background="#2b579a" Height="32" PointerPressed="TitleBar_PointerPressed">
+			<Grid ColumnDefinitions="*, Auto">
+				<TextBlock Text="Моя CD коллекция"
+						   Foreground="White"
+						   VerticalAlignment="Center"
+						   HorizontalAlignment="Center"
+						   IsHitTestVisible="False"/>
+				<StackPanel Grid.Column="1" Orientation="Horizontal">
+					<Button Name="MinBtn" Content="—" Classes="TitleBtn" Click="MinBtn_Click"/>
+					<Button Name="MaxBtn" Content="▢" Classes="TitleBtn" Click="MaxBtn_Click"/>
+					<Button Name="CloseBtn" Content="✕" Classes="TitleBtn" Click="CloseBtn_Click"/>
+				</StackPanel>
+			</Grid>
+		</Border>
+		
+
+		<!-- 2. Панель для кнопок NEW (Toolbar) -->
+		<Border Grid.Row="1"
+				Background="#f5f5f5"
+				BorderBrush="LightGray"
+				BorderThickness="0,0,0,1">
+			<StackPanel Orientation="Horizontal" Spacing="5" Margin="5">
+				<!-- Кнопка Новый -->
+				<Button Content="Новый"
+						Padding="15,5"
+						Background="#2b579a"
+						Foreground="White"
+						CornerRadius="4"
+						Command="{Binding OpenAddAlbumDialogCommand}"
+						CommandParameter="{Binding $parent[Window]}">
+					<Button.Styles>
+						<Style Selector="Button:pointerover /template/ ContentPresenter">
+							<Setter Property="Background" Value="#3669b4"/>
+						</Style>
+					</Button.Styles>
+				</Button>
+				<!-- Кнопка Обновить базу -->
+				<Button Content="Обновить базу"
+						Padding="15,5"
+						Background="White"
+						BorderBrush="Gray"
+						BorderThickness="1"
+						CornerRadius="4"
+						Command="{Binding LoadArtistsCommand}"/>	
+		</StackPanel>
 		</Border>
 
-		<!-- Вертикальный разделитель -->
-		<GridSplitter Grid.Column="1" Grid.Row="0" Grid.RowSpan="3" 
-                      Background="Transparent" ResizeDirection="Columns"/>
+		<!-- Основная сетка данных окна -->
+		<Panel Grid.Row="2">
+			<Grid ColumnDefinitions="280, 4 *" RowDefinitions="*, 4, 280">
 
-		<!-- ПРАВАЯ ВЕРХНЯЯ ПАНЕЛЬ: Галерея альбомов -->
-		<ScrollViewer Grid.Column="2" Grid.Row="0" VerticalScrollBarVisibility="Auto">
-            <StackPanel>
-                <TextBlock Text="Альбомы" FontSize="18" FontWeight="Bold" Margin="15,15,15,5"/>
-                
-                <ListBox ItemsSource="{Binding Albums}" 
-                         SelectedItem="{Binding SelectedAlbum}"
-                         Background="Transparent">
-                    <ListBox.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <!-- WrapPanel создает эффект плитки -->
-                            <WrapPanel Orientation="Horizontal" HorizontalAlignment="Left"/>
-                        </ItemsPanelTemplate>
-                    </ListBox.ItemsPanel>
-                    
-                    <ListBox.ItemTemplate>
-                        <DataTemplate x:DataType="models:Album">
-                            <StackPanel Width="180" Margin="10" Spacing="4">
-                                <Border CornerRadius="8" ClipToBounds="True"
-                                        Background="DarkGray"
-                                        BoxShadow="0 2 10 0 #30000000">
+				<!-- ЛЕВАЯ ПАНЕЛЬ: Список групп -->
+				<Border Grid.Column="0" Grid.Row="0" Grid.RowSpan="3"
+						Background="#FFF3F3F3" BorderBrush="Silver" BorderThickness="0,0,1,0">
+					<DockPanel>
+						<TextBlock DockPanel.Dock="Top" Text="Исполнители"
+								   FontSize="18" FontWeight="Bold" Margin="15,15,15,5"/>
 
-                                    <!-- Привязка к Image.Data через конвертер -->                                    
-                                    <Image Source="{Binding Image.Data, Converter={StaticResource ByteToBitmapConverter}}"
-                                           Width="180" Height="180"
-                                           Stretch="UniformToFill"/>                                
-                                </Border>
-                                
-                                <TextBlock Text="{Binding Title}" FontWeight="Bold" 
-                                           HorizontalAlignment="Center" TextAlignment="Center" 
-                                           TextWrapping="Wrap" MaxLines="2"/>
-                                <TextBlock Text="{Binding ReleaseYear}" FontSize="12" 
-                                           Opacity="0.6" HorizontalAlignment="Center"/>
-                            </StackPanel>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
-            </StackPanel>
-        </ScrollViewer>
-
-        <!-- Горизонтальный разделитель -->
-        <GridSplitter Grid.Column="2" Grid.Row="1" 
-                      Background="Silver" ResizeDirection="Rows"/>
-
-        <!-- НИЖНЯЯ ПАНЕЛЬ: Список треков -->
-        <Border Grid.Column="2" Grid.Row="2" Background="White">
-            <DockPanel>
-                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="15,10">
-                    <TextBlock Text="Треклист: " FontSize="16" FontWeight="SemiBold"/>
-                    <TextBlock Text="{Binding SelectedAlbum.Title}" FontSize="16" 
-                               FontStyle="Italic" Foreground="Gray" Margin="5,0,0,0"/>
-                </StackPanel>
-
-                <DataGrid ItemsSource="{Binding Tracks}" 
-                          AutoGenerateColumns="False" 
-                          IsReadOnly="True"
-                          CanUserResizeColumns="True"
-                          GridLinesVisibility="Horizontal"
-                          Margin="10,0,10,10">
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Header="№" Binding="{Binding Number}" Width="50"/>
-                        <DataGridTextColumn Header="Название трека" Binding="{Binding Title}" Width="*"/>
-                        <DataGridTextColumn Header="Длительность" 
-                                            Binding="{Binding Duration, StringFormat='\{0:mm\\:ss\}'}" 
-                                            Width="120"/>
-                    </DataGrid.Columns>
-                </DataGrid>
-            </DockPanel>
-        </Border>
+						<ListBox ItemsSource="{Binding Artists}"
+								 SelectedItem="{Binding SelectedArtist}"
+								 Background="Transparent" Margin="5"
+								 Classes="NoBorder">
+							<ListBox.ItemTemplate>
+								<DataTemplate x:DataType="models:Artist">
+									<!-- Оборачиваем в контейнер с контекстным меню -->
+									<TextBlock Text="{Binding Name}" 
+											   FontSize="15" 
+											   Padding="5" 
+											   Background="Transparent"
+											   >
+										
+										<!-- Контекстное меню Удалить исполлнителя-->
+										<TextBlock.ContextMenu>
+											<ContextMenu >
+												<MenuItem Header="Удалить исполнителя со всеми альбомами"
+														  Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).DeleteArtistCommand}"
+														  CommandParameter="{Binding}">
+													<MenuItem.Icon>
+														<Viewbox Width="14" Height="14">
+															<TextBlock Text="❌" Foreground="Red" VerticalAlignment="Center" />
+													    </Viewbox>
+													</MenuItem.Icon>
+												</MenuItem>
+											</ContextMenu>
+										</TextBlock.ContextMenu>
 
 
+									</TextBlock>
+								</DataTemplate>
+							</ListBox.ItemTemplate>
+						</ListBox>
+					</DockPanel>
+				</Border>
 
+				<!-- Вертикальный разделитель -->
+				<GridSplitter Grid.Column="1" Grid.Row="0" Grid.RowSpan="3"
+							  Background="Transparent" ResizeDirection="Columns"/>
+
+				<!-- ПРАВАЯ ВЕРХНЯЯ ПАНЕЛЬ: Галерея альбомов -->
+				<ScrollViewer Grid.Column="2" Grid.Row="0"
+							  VerticalScrollBarVisibility="Auto"
+							  Background="White"
+							  >
+					<StackPanel>
+						<TextBlock Text="Альбомы" FontSize="18" FontWeight="Bold" Margin="15,15,15,5"/>
+
+						<ListBox ItemsSource="{Binding Albums}" 
+								 SelectedItem="{Binding SelectedAlbum}" 
+								 Background="Transparent"
+								 Classes="NoBorder">
+							<ListBox.ItemsPanel>
+								<ItemsPanelTemplate>
+									<WrapPanel Orientation="Horizontal" HorizontalAlignment="Left"/>
+								</ItemsPanelTemplate>
+							</ListBox.ItemsPanel>
+
+							<ListBox.ItemTemplate>
+								<DataTemplate x:DataType="models:Album">
+									<StackPanel Width="170" Margin="12" Spacing="6" Background="Transparent">
+										<!--Контекстное меню - Удалить альбом-->
+										<StackPanel.ContextMenu>
+											<ContextMenu>
+
+												<MenuItem Header="Редактировать альбом"
+														  Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).EditAlbumCommand}"
+														  CommandParameter="{Binding}">
+													<MenuItem.Icon>
+														<TextBlock Text="✏️" Foreground="Blue" VerticalAlignment="Center"/>
+													</MenuItem.Icon>
+												</MenuItem>
+
+
+												<MenuItem Header="Удалить альбом"
+														  Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).DeleteAlbumCommand}"
+														  CommandParameter="{Binding}">
+													<MenuItem.Icon>
+														<TextBlock Text="❌" Foreground="Red" VerticalAlignment="Center"/>
+													</MenuItem.Icon>
+												</MenuItem>
+											</ContextMenu>
+										</StackPanel.ContextMenu>
+
+										<Border CornerRadius="8" ClipToBounds="True"
+												Background="DarkGray"
+												BoxShadow="0 2 10 0 #30000000">
+
+											<!-- Привязка к Image.Data через конвертер -->
+											<Image Source="{Binding Image.Data, Converter={StaticResource ByteToBitmapConverter}}"
+												   Width="180" Height="180"
+												   Stretch="UniformToFill"/>
+										</Border>
+
+										<TextBlock Text="{Binding Title}" FontWeight="Bold"
+												   HorizontalAlignment="Center" TextAlignment="Center"
+												   TextWrapping="Wrap" MaxLines="2"/>
+										<TextBlock Text="{Binding ReleaseYear}" FontSize="12"
+												   Opacity="0.6" HorizontalAlignment="Center"/>
+									</StackPanel>
+								</DataTemplate>
+							</ListBox.ItemTemplate>
+						</ListBox>
+					</StackPanel>
+				</ScrollViewer>
+
+				<!-- Горизонтальный разделитель -->
+				<GridSplitter Grid.Column="2" Grid.Row="1"
+							  Background="Silver" ResizeDirection="Rows"/>
+
+				<!-- НИЖНЯЯ ПАНЕЛЬ: Список треков -->
+
+				<Border Grid.Column="2" Grid.Row="2" Background="White">
+					<DockPanel>
+						<!-- НОВАЯ ИНФО-ПАНЕЛЬ -->
+						<Border DockPanel.Dock="Top" Background="#F0F5FA" CornerRadius="5" Margin="10,5" Padding="10">
+							<StackPanel Orientation="Horizontal" Spacing="25">
+								<!-- Кат. номер -->
+								<StackPanel>
+									<TextBlock Text="КАТ. НОМЕР" FontSize="10" Foreground="Gray" FontWeight="Bold"/>
+									<TextBlock Text="{Binding SelectedAlbum.CatalogNumber}" FontSize="14"/>
+								</StackPanel>
+
+								<!-- Упаковка -->
+								<StackPanel>
+									<TextBlock Text="УПАКОВКА" FontSize="10" Foreground="Gray" FontWeight="Bold"/>
+									<TextBlock Text="{Binding SelectedAlbum.Packaging}" FontSize="14"/>
+								</StackPanel>
+
+								<!-- Лейбл -->
+								<StackPanel>
+									<TextBlock Text="ЛЕЙБЛ" FontSize="10" Foreground="Gray" FontWeight="Bold"/>
+									<TextBlock Text="{Binding SelectedAlbum.Label}" FontSize="14"/>
+								</StackPanel>
+
+								<!-- Общая длительность -->
+								<StackPanel>
+									<TextBlock Text="ОБЩЕЕ ВРЕМЯ" FontSize="10" Foreground="Gray" FontWeight="Bold"/>
+									<TextBlock Text="{Binding TotalDuration}" FontSize="14" FontWeight="Bold" Foreground="SteelBlue"/>
+								</StackPanel>
+							</StackPanel>
+						</Border>
+
+
+						<StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="15,10">
+							<TextBlock Text="Треклист: " FontSize="16" FontWeight="SemiBold"/>
+							<TextBlock Text="{Binding SelectedAlbum.Title}" FontSize="16"
+									   FontStyle="Italic" Foreground="Gray" Margin="5,0,0,0" Width="350"/>
+						</StackPanel>
+
+						<DataGrid ItemsSource="{Binding Tracks}"
+								  AutoGenerateColumns="False"
+								  IsReadOnly="True"
+								  CanUserResizeColumns="True"
+								  GridLinesVisibility="Horizontal"
+								  Margin="10,0,10,10">
+							<DataGrid.Columns>
+								<DataGridTextColumn Header="№" Binding="{Binding Number}" Width="50"/>
+								<DataGridTextColumn Header="Название трека" Binding="{Binding Title}" Width="*"/>
+								<DataGridTextColumn Header="Длительность">
+									<DataGridTextColumn.Binding>
+										<Binding Path="Duration"
+												 Mode="OneWay"
+												 StringFormat="mm\:ss"/>
+									</DataGridTextColumn.Binding>
+								</DataGridTextColumn>
+							</DataGrid.Columns>
+						</DataGrid>
+
+
+					</DockPanel>
+				</Border>
+			</Grid>
+		</Panel>
 	</Grid>
-
-
-
 </Window>

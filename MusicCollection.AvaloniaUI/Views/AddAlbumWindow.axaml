@@ -1,81 +1,112 @@
 <Window xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:vm="using:MusicCollection.AvaloniaUI.ViewModels"
-        xmlns:conv="using:MusicCollection.AvaloniaUI.Converters"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-        x:Class="MusicCollection.AvaloniaUI.AddAlbumWindow"
-        x:DataType="vm:AddAlbumViewModel"
-        Title="Добавление диска в коллекцию"
-        Width="450" Height="600"
-        WindowStartupLocation="CenterOwner">
+		xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+		xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+		xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+		xmlns:models="using:MusicCollection.Models.Entities"
+		xmlns:vm="using:MusicCollection.AvaloniaUI.ViewModels"
+		xmlns:conv="using:MusicCollection.AvaloniaUI.Converters"
+		mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="850"
+		x:Class="MusicCollection.AvaloniaUI.AddAlbumWindow"
+		x:DataType="vm:AddAlbumViewModel"
+		Title="Добавление диска в коллекцию"
+		Width="600" Height="850"
+		WindowStartupLocation="CenterOwner">
 
-    <Window.Resources>
-        <conv:BitmapAssetValueConverter x:Key="ByteToBitmapConverter"/>
-    </Window.Resources>
+	<Window.Resources>
+		<conv:BitmapAssetValueConverter x:Key="ByteToBitmapConverter"/>
+	</Window.Resources>
 
-    <ScrollViewer>
-        <StackPanel Margin="20" Spacing="15">
-            <TextBlock Text="Новый альбом" FontSize="20" FontWeight="Bold"/>
+	<Grid RowDefinitions="Auto, *, Auto" Margin="20">
+		<!-- 1. ВЕРХНЯЯ ЧАСТЬ: Данные альбома -->
+		<Grid Grid.Row="0" ColumnDefinitions="*, 200" Margin="0,0,0,20">
+			<StackPanel Grid.Column="0" Spacing="10" Margin="0,0,20,0">
+				<TextBlock Text="Исполнитель:"
+						   FontWeight="Bold"/>
+				<ComboBox ItemsSource="{Binding Artists}"
+						  SelectedItem="{Binding SelectedArtist}"
+						  Text="{Binding ArtistNameText}"
+						  DisplayMemberBinding="{Binding Name}"
+						  IsEditable="True"
+						  HorizontalAlignment="Stretch">
+					
 
-            <!-- Выбор артиста -->
-            <StackPanel Spacing="5">
-                <TextBlock Text="Исполнитель:"/>
-                <ComboBox ItemsSource="{Binding Artists}" 
-                          SelectedItem="{Binding SelectedArtist}"
-                          Text="{Binding ArtistNameText}"
-                          IsEditable="True"
-                          HorizontalAlignment="Stretch">
-                    <ComboBox.ItemTemplate>
-                        <DataTemplate>
-                            <TextBlock Text="{Binding Name}"/>
-                        </DataTemplate>
-                    </ComboBox.ItemTemplate>
-                </ComboBox>
-            </StackPanel>
+				</ComboBox>
 
-            <StackPanel Spacing="5">
-                <TextBlock Text="Название альбома:"/>
-                <TextBox Text="{Binding Title}"/>
-            </StackPanel>
 
-            <Grid ColumnDefinitions="*, *">
-                <StackPanel Grid.Column="0" Spacing="5" Margin="0,0,10,0">
-                    <TextBlock Text="Год выпуска:"/>
-                    <NumericUpDown Value="{Binding ReleaseYear}" Minimum="1900" Maximum="2100" FormatString="0"/>
-                </StackPanel>
-                <StackPanel Grid.Column="1" Spacing="5">
-                    <TextBlock Text="Тип упаковки:"/>
-                    <ComboBox ItemsSource="{Binding AllPackagings}" 
-                              SelectedItem="{Binding SelectedPackaging}"
-                              HorizontalAlignment="Stretch"/>
-                </StackPanel>
-            </Grid>
+				<TextBlock Text="Название альбома:" FontWeight="Bold"/>
+				<TextBox Text="{Binding Title}" Watermark="Введите название..."/>
 
-            <StackPanel Spacing="5">
-                <TextBlock Text="Лейбл:"/>
-                <TextBox Text="{Binding Label}"/>
-            </StackPanel>
+				<Grid ColumnDefinitions="*, *">
+					<StackPanel Grid.Column="0" Margin="0,0,5,0">
+						<TextBlock Text="Год выпуска:"/>
+						<NumericUpDown Value="{Binding ReleaseYear}" Minimum="1900" Maximum="2100" FormatString="0"/>
+					</StackPanel>
+					<StackPanel Grid.Column="1" Margin="5,0,0,0">
+						<TextBlock Text="Упаковка:"/>
+						<ComboBox ItemsSource="{Binding AllPackagings}"
+								  SelectedItem="{Binding SelectedPackaging}"
+								  HorizontalAlignment="Stretch"/>
+					</StackPanel>
+				</Grid>
 
-            <!-- Работа с обложкой -->
-            <StackPanel Spacing="10">
-                <Button Content="Выбрать файл обложки..." 
-                        Click="SelectImage_Click" 
-                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
-                
-                <Border Height="180" Background="LightGray" CornerRadius="8" ClipToBounds="True">
-                    <Image Source="{Binding CoverData, Converter={StaticResource ByteToBitmapConverter}}"
-                           Stretch="UniformToFill"/>
-                </Border>
-            </StackPanel>
+				<TextBlock Text="Лейбл / Номер по каталогу:"/>
+				<Grid ColumnDefinitions="*, *">
+					<TextBox Grid.Column="0" Text="{Binding Label}" Watermark="Лейбл" Margin="0,0,5,0"/>
+					<TextBox Grid.Column="1" Text="{Binding CatalogNumber}" Watermark="Кат. номер" Margin="5,0,0,0"/>
+				</Grid>
+			</StackPanel>
 
-            <!-- Кнопки управления -->
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="10" Margin="0,10,0,0">
-                <Button Content="Отмена" Click="Cancel_Click" Width="80"/>
-                <Button Content="Сохранить" Click="Save_Click" Width="100" Classes="accent"/>
-            </StackPanel>
-        </StackPanel>
-    </ScrollViewer>
-  
+			<!-- Блок обложки -->
+			<StackPanel Grid.Column="1" Spacing="10">
+				<Border Height="180" Background="LightGray" CornerRadius="8" ClipToBounds="True" BoxShadow="0 4 8 0 #40000000">
+					<Image Source="{Binding CoverData, Converter={StaticResource ByteToBitmapConverter}}"
+						   Stretch="UniformToFill"/>
+				</Border>
+				<Button Content="Выбрать обложку" Click="SelectImage_Click" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"/>
+			</StackPanel>
+		</Grid>
+
+		<!-- 2. СРЕДНЯЯ ЧАСТЬ: Треклист -->
+		<DockPanel Grid.Row="1">
+			<StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,10">
+				<TextBlock Text="Список треков" FontSize="16" FontWeight="Bold" VerticalAlignment="Center"/>
+				<Button Margin="20,0,0,0" Content="+ Добавить трек" Command="{Binding AddTrackCommand}" Background="DarkGreen" Foreground="White"/>
+			</StackPanel>
+
+			<DataGrid ItemsSource="{Binding NewTracks}"
+					  AutoGenerateColumns="False"
+					  GridLinesVisibility="All"
+					  BorderThickness="1" BorderBrush="Gray">
+				<DataGrid.Columns>
+					<!-- Номер диска (для CD1, CD2 и т.д.) -->
+					<DataGridTextColumn Header="CD" Binding="{Binding PhysicalDisc.DiscNumber}" Width="50"/>
+					<DataGridTextColumn Header="№" Binding="{Binding Number}" Width="50"/>
+					<DataGridTextColumn Header="Название" Binding="{Binding Title}" Width="*"/>
+					<DataGridTextColumn Header="Длительность (мин:сек)" Binding="{Binding DurationDisplay}" Width="150"/>
+
+					<!-- Кнопка удаления трека -->
+					<DataGridTemplateColumn Width="50">
+						<DataGridTemplateColumn.CellTemplate>
+							<DataTemplate>
+								<Button Content="✕"
+										Foreground="Red"
+										Background="Transparent"
+										Command="{Binding $parent[Window].((vm:AddAlbumViewModel)DataContext).RemoveTrackCommand}"
+										CommandParameter="{Binding}"
+										HorizontalAlignment="Center"/>
+							</DataTemplate>
+						</DataGridTemplateColumn.CellTemplate>
+					</DataGridTemplateColumn>
+				</DataGrid.Columns>
+			</DataGrid>
+		</DockPanel>
+
+		<!-- 3. НИЖНЯЯ ЧАСТЬ: Кнопки управления -->
+		<StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="15" Margin="0,20,0,0">
+			<Button Content="Отмена" Click="Cancel_Click" Width="100" HorizontalContentAlignment="Center"/>
+			<Button Content="Сохранить" Click="Save_Click" Width="120" HorizontalContentAlignment="Center"
+					Classes="accent" IsEnabled="{Binding CanSave}"/>
+		</StackPanel>
+	</Grid>
+
 </Window>

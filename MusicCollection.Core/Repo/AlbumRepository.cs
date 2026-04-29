@@ -38,8 +38,8 @@ internal class AlbumRepository : BaseRepository<Album>, IAlbumRepository
         return await Table 
             .AsNoTracking() 
             .Where(a => a.ArtistId == artistId)
-            .Include(a => a.Image) 
-            .OrderByDescending(a => a.ReleaseYear)
+            .Include(a => a.Image)             
+            .OrderBy(a => a.ReleaseYear)
             .ToListAsync();
     }
 }
