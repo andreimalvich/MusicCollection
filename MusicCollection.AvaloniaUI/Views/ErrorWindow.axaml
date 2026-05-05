@@ -1,0 +1,26 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        x:Class="MusicCollection.AvaloniaUI.ErrorWindow"
+        Title="Критическая ошибка"
+        Width="400" Height="180"
+        WindowStartupLocation="CenterScreen"
+        CanResize="False">
+  <StackPanel Margin="20" Spacing="15" VerticalAlignment="Center">
+        <TextBlock Text="Ошибка подключения" 
+                   FontSize="18" 
+                   FontWeight="Bold" 
+                   Foreground="Red"/>
+        
+        <TextBlock Name="MessageBlock" 
+                   TextWrapping="Wrap" 
+                   Text="Не удалось подключиться к базе данных."/>
+        
+        <Button Content="Закрыть" 
+                HorizontalAlignment="Right" 
+                Click="CloseButton_Click"
+                Classes="accent"/>
+    </StackPanel>
+</Window>

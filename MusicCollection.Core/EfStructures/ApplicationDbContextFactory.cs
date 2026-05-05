@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore.Design;
 
 namespace MusicCollection.Core.EfStructures;
 
+
+// ТОЛЬКО ДЛЯ МИГРАЦИЙ !!!
 public class ApplicationDbContextFactory : IDesignTimeDbContextFactory<ApplicationDbContext>
 {
     public ApplicationDbContext CreateDbContext(string[] args)

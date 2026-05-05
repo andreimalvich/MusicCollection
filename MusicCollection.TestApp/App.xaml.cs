@@ -12,6 +12,7 @@ public partial class App : Application
 
         try
         {
+            //TODO : ПЕРЕДЕЛАТЬ ЭТУ ЕРЕСЬ!!!! на IDbContextFactory<T>
             var contextFactory = new ApplicationDbContextFactory();
             using (var context = contextFactory.CreateDbContext(Array.Empty<string>()))
             {
