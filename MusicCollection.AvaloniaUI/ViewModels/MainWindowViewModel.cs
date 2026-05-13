@@ -1,5 +1,4 @@
 ﻿using Avalonia;
-using Avalonia.Collections;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -18,8 +17,6 @@ namespace MusicCollection.AvaloniaUI.ViewModels;
 
 public partial class MainWindowViewModel : ViewModelBase
 {
-    //private readonly ApplicationDbContextFactory _dbFactory = new();
-
     private readonly IDbContextFactory<ApplicationDbContext> _dbFactory;
 
     [ObservableProperty] private ObservableCollection<Artist> _artists = new();
@@ -38,18 +35,10 @@ public partial class MainWindowViewModel : ViewModelBase
         _dbFactory = factory;
         _ = LoadArtistsAsync();
     }
-
-    //public MainWindowViewModel()
-    //{
-    //    _dbFactory = new ApplicationDbContextFactory();
-    //    // Запуск начальной загрузки
-    //    _ = LoadArtistsAsync();
-    //}
     
     [RelayCommand]
     private async Task LoadArtistsAsync()
-    {
-        //using var context = _dbFactory.CreateDbContext(Array.Empty<string>());
+    {        
         using var context = await _dbFactory.CreateDbContextAsync();
         using var uow = new UnitOfWork(context);
         var list = await uow.Artists.GetAlphabeticalAsync();
@@ -71,8 +60,7 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     private async Task LoadAlbumsAsync(int artistId)
-    {
-        //using var context = _dbFactory.CreateDbContext(Array.Empty<string>());
+    {        
         using var context = await _dbFactory.CreateDbContextAsync();
         using var uow = new UnitOfWork(context);        
         var list = await uow.Albums.GetByArtistWithImagesAsync(artistId);
@@ -82,8 +70,7 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     private async Task LoadTracksAsync(int albumId)
-    {
-        //using var context = _dbFactory.CreateDbContext(Array.Empty<string>());
+    {        
         using var context = await _dbFactory.CreateDbContextAsync();
         using var uow = new UnitOfWork(context);
         var album = await uow.Albums.GetFullAlbumDetailsAsync(albumId);
@@ -94,16 +81,12 @@ public partial class MainWindowViewModel : ViewModelBase
                 .OrderBy(d => d.DiscNumber)
                 .SelectMany(d => d.Tracks.OrderBy(t => t.Number))
                 .ToList();
-
-
             
             Tracks = new ObservableCollection<Track>(allTracks);
-
         }
     }
 
     // --- Логика добавления нового альбома ---
-
     [RelayCommand]
     public async Task OpenAddAlbumDialogAsync(Window owner)
     {
@@ -128,8 +111,7 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     private async Task SaveNewAlbumLogic(AddAlbumViewModel vm)
-    {
-        //using var context = _dbFactory.CreateDbContext(Array.Empty<string>());
+    {        
         using var context = await _dbFactory.CreateDbContextAsync();
         using var uow = new UnitOfWork(context);
 
@@ -197,7 +179,7 @@ public partial class MainWindowViewModel : ViewModelBase
         if (album == null) return;
 
         // TODO: Подтверждение удаления - переделать на диалог)
-        //using var context = _dbFactory.CreateDbContext(Array.Empty<string>());
+        
         using var context = await _dbFactory.CreateDbContextAsync();
         using var uow = new UnitOfWork(context);
         
@@ -217,8 +199,7 @@ public partial class MainWindowViewModel : ViewModelBase
         var mainWindow = desktop?.MainWindow;
         if (mainWindow == null) return;
 
-        // Подгружаем данные для формы
-        // using var context = _dbFactory.CreateDbContext(Array.Empty<string>());
+        // Подгружаем данные для формы        
         using var context = await _dbFactory.CreateDbContextAsync();
         using var uow = new UnitOfWork(context);
         var fullAlbum = await uow.Albums.GetFullAlbumDetailsAsync(album.Id);
@@ -241,8 +222,7 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     private async Task SaveEditedAlbumLogic(int albumId, AddAlbumViewModel vm)
-    {
-        //using var context = _dbFactory.CreateDbContext(Array.Empty<string>());
+    {        
         using var context = await _dbFactory.CreateDbContextAsync();
         using var uow = new UnitOfWork(context);
 
@@ -286,8 +266,6 @@ public partial class MainWindowViewModel : ViewModelBase
         });
     }
 
-
-
     [RelayCommand]
     public async Task DeleteArtistAsync(Artist artist)
     {
@@ -302,9 +280,7 @@ public partial class MainWindowViewModel : ViewModelBase
             if (!confirm) return;
         }
 
-
-        // 1. Удаление из базы данных
-        //using var context = _dbFactory.CreateDbContext(Array.Empty<string>());
+        // 1. Удаление из базы данных        
         using var context = await _dbFactory.CreateDbContextAsync();
         using var uow = new UnitOfWork(context);
 

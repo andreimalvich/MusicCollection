@@ -1,23 +1,38 @@
-﻿using System.Windows;
+﻿using Microsoft.EntityFrameworkCore;
 using MusicCollection.Core.EfStructures;
 using MusicCollection.Core.Initialization;
+using MusicCollection.Core.Repo;
+using System.Windows;
+using System.Windows.Documents;
 
 namespace MusicCollection.TestApp;
 
 public partial class App : Application
 {
-    protected override void OnStartup(StartupEventArgs e)
+    
+
+    protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
 
+        var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
+        var connectionString =
+            @"Server=(localdb)\mssqllocaldb;Database=MusicCollectionDB;Trusted_Connection=True;";
+        
+
         try
-        {
-            //TODO : ПЕРЕДЕЛАТЬ ЭТУ ЕРЕСЬ!!!! на IDbContextFactory<T>
-            var contextFactory = new ApplicationDbContextFactory();
-            using (var context = contextFactory.CreateDbContext(Array.Empty<string>()))
+        {            
+            optionsBuilder.UseSqlServer(connectionString);
+            
+            using (ApplicationDbContext context = new ApplicationDbContext(optionsBuilder.Options))
             {
-                SampleDataInitializer.InitializeData(context);
+
+
             }
+
+            
+            //SampleDataInitializer.InitializeData(context);
+            
         }
         catch (Exception ex) 
         { 
