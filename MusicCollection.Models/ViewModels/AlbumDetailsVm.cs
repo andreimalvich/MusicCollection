@@ -9,6 +9,5 @@ public class AlbumDetailsVm
     public string? CatalogNumber { get; set; }
     public string? Label { get; set; }
     public string Packaging { get; set; } = string.Empty; // Enum в виде строки
-
     public List<TrackListVm> Tracks { get; set; } = new();
 }

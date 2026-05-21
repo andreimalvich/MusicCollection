@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia;
@@ -83,7 +84,7 @@ public partial class MainWindowViewModel : ViewModelBase
         }
 
         // TODO: Подтверждение удаления - переделать на диалог)
-        using var context = await _dbFactory.CreateDbContextAsync();
+        var context = await _dbFactory.CreateDbContextAsync();
         using var uow = new UnitOfWork(context);
 
         uow.Albums.Delete(album);
@@ -109,7 +110,7 @@ public partial class MainWindowViewModel : ViewModelBase
         }
 
         // Подгружаем данные для формы
-        using var context = await _dbFactory.CreateDbContextAsync();
+        var context = await _dbFactory.CreateDbContextAsync();
         using var uow = new UnitOfWork(context);
         var fullAlbum = await uow.Albums.GetFullAlbumDetailsAsync(album.Id);
         if (fullAlbum == null)
@@ -154,7 +155,7 @@ public partial class MainWindowViewModel : ViewModelBase
         }
 
         // 1. Удаление из базы данных
-        using var context = await _dbFactory.CreateDbContextAsync();
+        var context = await _dbFactory.CreateDbContextAsync();
         using var uow = new UnitOfWork(context);
 
         uow.Artists.Delete(artist);
@@ -175,7 +176,7 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     private async Task LoadArtistsAsync()
     {
-        using var context = await _dbFactory.CreateDbContextAsync();
+        var context = await _dbFactory.CreateDbContextAsync();
         using var uow = new UnitOfWork(context);
         var list = await uow.Artists.GetAlphabeticalAsync();
 
@@ -188,17 +189,23 @@ public partial class MainWindowViewModel : ViewModelBase
 
     partial void OnSelectedArtistChanged(Artist? value)
     {
-        if (value != null) _ = LoadAlbumsAsync(value.Id);
+        if (value != null)
+        {
+            _ = LoadAlbumsAsync(value.Id);
+        }
     }
 
     partial void OnSelectedAlbumChanged(Album? value)
     {
-        if (value != null) _ = LoadTracksAsync(value.Id);
+        if (value != null)
+        {
+            _ = LoadTracksAsync(value.Id);
+        }
     }
 
     private async Task LoadAlbumsAsync(int artistId)
     {
-        using var context = await _dbFactory.CreateDbContextAsync();
+        var context = await _dbFactory.CreateDbContextAsync();
         using var uow = new UnitOfWork(context);
         var list = await uow.Albums.GetByArtistWithImagesAsync(artistId);
 
@@ -208,7 +215,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private async Task LoadTracksAsync(int albumId)
     {
-        using var context = await _dbFactory.CreateDbContextAsync();
+        var context = await _dbFactory.CreateDbContextAsync();
         using var uow = new UnitOfWork(context);
         var album = await uow.Albums.GetFullAlbumDetailsAsync(albumId);
 
@@ -220,12 +227,23 @@ public partial class MainWindowViewModel : ViewModelBase
                 .ToList();
 
             Tracks = new ObservableCollection<Track>(allTracks);
+
+            if (!Tracks.Any())
+            {
+                TotalDuration = "00:00";
+                return;
+            }
+
+            TimeSpan totalDuration = Tracks.Aggregate(TimeSpan.Zero, (sum, track) => sum + track.Duration);
+            TotalDuration = totalDuration.TotalHours >= 1
+                ? totalDuration.ToString(@"hh\:mm\:ss")
+                : totalDuration.ToString(@"mm\:ss");
         }
     }
 
     private async Task SaveEditedAlbumLogic(int albumId, AddAlbumViewModel vm)
     {
-        using var context = await _dbFactory.CreateDbContextAsync();
+        var context = await _dbFactory.CreateDbContextAsync();
         using var uow = new UnitOfWork(context);
 
         // Загружаем альбом заново в НОВОМ контексте
@@ -274,7 +292,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private async Task SaveNewAlbumLogic(AddAlbumViewModel vm)
     {
-        using var context = await _dbFactory.CreateDbContextAsync();
+        var context = await _dbFactory.CreateDbContextAsync();
         using var uow = new UnitOfWork(context);
 
         // 1. Обработка артиста

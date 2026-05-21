@@ -11,7 +11,6 @@ public partial class ApplicationDbContext : DbContext
     public DbSet<Track> Tracks => Set<Track>();
     public DbSet<AlbumImage> Images => Set<AlbumImage>();
 
-
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
         : base(options)
     {
