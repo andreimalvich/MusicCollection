@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.ObjectModel;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
@@ -18,11 +18,11 @@ namespace MusicCollection.AvaloniaUI.ViewModels;
 
 public partial class MainWindowViewModel : ViewModelBase
 {
-    private readonly IDbContextFactory<ApplicationDbContext> _dbFactory;
+    private readonly UnitOfWorkFactory _uowFactory;
 
-    public MainWindowViewModel(IDbContextFactory<ApplicationDbContext> factory)
+    public MainWindowViewModel(UnitOfWorkFactory unitOfWorkFactory)
     {
-        _dbFactory = factory;
+        _uowFactory = unitOfWorkFactory;
         _ = LoadArtistsAsync();
     }
 
@@ -84,12 +84,9 @@ public partial class MainWindowViewModel : ViewModelBase
         }
 
         // TODO: Подтверждение удаления - переделать на диалог)
-        var context = await _dbFactory.CreateDbContextAsync();
-        using var uow = new UnitOfWork(context);
-
+        using var uow = await _uowFactory.CreateAsync();
         uow.Albums.Delete(album);
         await uow.CompleteAsync();
-
         Albums.Remove(album);
         Tracks.Clear();
     }
@@ -109,9 +106,7 @@ public partial class MainWindowViewModel : ViewModelBase
             return;
         }
 
-        // Подгружаем данные для формы
-        var context = await _dbFactory.CreateDbContextAsync();
-        using var uow = new UnitOfWork(context);
+        using var uow = await _uowFactory.CreateAsync();
         var fullAlbum = await uow.Albums.GetFullAlbumDetailsAsync(album.Id);
         if (fullAlbum == null)
         {
@@ -142,11 +137,13 @@ public partial class MainWindowViewModel : ViewModelBase
             return;
         }
 
-        var mainWindow = (Application.Current.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow as MainWindow;
+        var mainWindow =
+            (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?
+            .MainWindow as MainWindow;
 
         if (mainWindow is not null)
         {
-            bool confirm = await mainWindow.ConfirmDelete($"Вы уверены, что хотите удалить исполнителя '{SelectedArtist.Name}' и ВСЕ его альбомы?");
+            bool confirm = await mainWindow.ConfirmDelete($"Вы уверены, что хотите удалить исполнителя '{SelectedArtist?.Name}' и ВСЕ его альбомы?");
 
             if (!confirm)
             {
@@ -155,9 +152,7 @@ public partial class MainWindowViewModel : ViewModelBase
         }
 
         // 1. Удаление из базы данных
-        var context = await _dbFactory.CreateDbContextAsync();
-        using var uow = new UnitOfWork(context);
-
+        using var uow = await _uowFactory.CreateAsync();
         uow.Artists.Delete(artist);
         await uow.CompleteAsync();
 
@@ -176,8 +171,7 @@ public partial class MainWindowViewModel : ViewModelBase
     [RelayCommand]
     private async Task LoadArtistsAsync()
     {
-        var context = await _dbFactory.CreateDbContextAsync();
-        using var uow = new UnitOfWork(context);
+        using var uow = await _uowFactory.CreateAsync();
         var list = await uow.Artists.GetAlphabeticalAsync();
 
         Artists = new ObservableCollection<Artist>(list);
@@ -205,8 +199,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private async Task LoadAlbumsAsync(int artistId)
     {
-        var context = await _dbFactory.CreateDbContextAsync();
-        using var uow = new UnitOfWork(context);
+        using var uow = await _uowFactory.CreateAsync();
         var list = await uow.Albums.GetByArtistWithImagesAsync(artistId);
 
         Albums = new ObservableCollection<Album>(list);
@@ -215,8 +208,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private async Task LoadTracksAsync(int albumId)
     {
-        var context = await _dbFactory.CreateDbContextAsync();
-        using var uow = new UnitOfWork(context);
+        using var uow = await _uowFactory.CreateAsync();
         var album = await uow.Albums.GetFullAlbumDetailsAsync(albumId);
 
         if (album != null)
@@ -243,8 +235,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private async Task SaveEditedAlbumLogic(int albumId, AddAlbumViewModel vm)
     {
-        var context = await _dbFactory.CreateDbContextAsync();
-        using var uow = new UnitOfWork(context);
+        using var uow = await _uowFactory.CreateAsync();
 
         // Загружаем альбом заново в НОВОМ контексте
         var albumToUpdate = await uow.Albums.GetFullAlbumDetailsAsync(albumId);
@@ -292,10 +283,8 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private async Task SaveNewAlbumLogic(AddAlbumViewModel vm)
     {
-        var context = await _dbFactory.CreateDbContextAsync();
-        using var uow = new UnitOfWork(context);
-
         // 1. Обработка артиста
+        using var uow = await _uowFactory.CreateAsync();
         var artist = vm.SelectedArtist;
         if (artist == null || artist.Name != vm.ArtistNameText)
         {

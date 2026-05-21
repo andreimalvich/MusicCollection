@@ -6,12 +6,8 @@ using MusicCollection.Models.Entities;
 
 namespace MusicCollection.Core.Repo;
 
-internal class AlbumRepository : BaseRepository<Album>, IAlbumRepository
+internal class AlbumRepository(ApplicationDbContext context) : BaseRepository<Album>(context), IAlbumRepository
 {
-    public AlbumRepository(ApplicationDbContext context) : base(context) 
-    { 
-    }
-
     public async Task<List<Album>> GetAlbumsByArtistAsync(int artistId)
     {
         return await Table

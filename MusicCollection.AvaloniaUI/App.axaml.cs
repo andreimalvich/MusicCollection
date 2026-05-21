@@ -24,7 +24,7 @@ public partial class App : Application
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            if (!bootstrapper.IsDatabaseAvailable(ServiceProvider))
+            if (!AppBootstrapper.IsDatabaseAvailable(ServiceProvider))
             {
                 // throw new InvalidOperationException(
                 // "Критическая ошибка: База данных MusicCollectionDB недоступна. " +

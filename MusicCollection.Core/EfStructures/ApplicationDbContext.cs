@@ -3,7 +3,7 @@ using MusicCollection.Models.Entities;
 
 namespace MusicCollection.Core.EfStructures;
 
-public partial class ApplicationDbContext : DbContext
+public partial class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : DbContext(options)
 {
     public DbSet<Artist> Artists => Set<Artist>();
     public DbSet<Album> Albums => Set<Album>();
@@ -11,11 +11,6 @@ public partial class ApplicationDbContext : DbContext
     public DbSet<Track> Tracks => Set<Track>();
     public DbSet<AlbumImage> Images => Set<AlbumImage>();
 
-    public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
-        : base(options)
-    {
-
-    }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         // Конфигурация Artist

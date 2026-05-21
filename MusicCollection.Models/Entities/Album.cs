@@ -15,5 +15,5 @@ public class Album : BaseEntity
     public Artist Artist { get; set; } = null!;
 
     public AlbumImage? Image { get; set; }
-    public List<PhysicalDisc> Discs { get; set; } = new();
+    public List<PhysicalDisc> Discs { get; set; } = [];
 }
