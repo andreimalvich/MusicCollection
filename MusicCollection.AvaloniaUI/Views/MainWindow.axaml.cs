@@ -1,5 +1,5 @@
+﻿using System.Threading.Tasks;
 using Avalonia.Controls;
-using System.Threading.Tasks;
 
 namespace MusicCollection.AvaloniaUI.Views;
 
@@ -25,21 +25,26 @@ public partial class MainWindow : Window
             {
                 Spacing = 20,
                 Children =
-            {
-                new TextBlock { Text = message, TextWrapping = Avalonia.Media.TextWrapping.Wrap },
-                new StackPanel
                 {
-                    Orientation = Avalonia.Layout.Orientation.Horizontal,
-                    HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right,
-                    Spacing = 10
-                }
-            }
-            }
+                    new TextBlock
+                    {
+                        Text = message,
+                        TextWrapping = Avalonia.Media.TextWrapping.Wrap,
+                    },
+                    new StackPanel
+                    {
+                        Orientation = Avalonia.Layout.Orientation.Horizontal,
+                        HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right,
+                        Spacing = 10,
+                    },
+                },
+            },
         };
 
         var btnStack = (StackPanel)((StackPanel)dialog.Content).Children[1];
 
         var btnYes = new Button { Content = "Да", Width = 60 };
+
         // Правильная подписка на событие в коде
         btnYes.Click += (s, e) => dialog.Close(true);
 
@@ -67,7 +72,7 @@ public partial class MainWindow : Window
     {
         if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
         {
-            this.BeginMoveDrag(e);
+            BeginMoveDrag(e);
         }
     }
 }

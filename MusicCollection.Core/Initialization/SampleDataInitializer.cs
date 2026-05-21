@@ -29,8 +29,8 @@ public static class SampleDataInitializer
         }
     }
 
-    public static List<Artist> GetArtists() => new()
-    {
+    public static List<Artist> GetArtists() =>
+    [
         new Artist
         {
             Name = "Pink Floyd",
@@ -165,7 +165,7 @@ public static class SampleDataInitializer
                 }
             }
         }
-    };
+    ];
 
     public static void SeedData(ApplicationDbContext context)
     {

@@ -1,4 +1,8 @@
-﻿using Avalonia;
+﻿using System;
+using System.Collections.ObjectModel;
+using System.Linq;
+using System.Threading.Tasks;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -8,10 +12,6 @@ using MusicCollection.AvaloniaUI.Views;
 using MusicCollection.Core.EfStructures;
 using MusicCollection.Core.Repo;
 using MusicCollection.Models.Entities;
-using System;
-using System.Collections.ObjectModel;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace MusicCollection.AvaloniaUI.ViewModels;
 
@@ -19,26 +19,162 @@ public partial class MainWindowViewModel : ViewModelBase
 {
     private readonly IDbContextFactory<ApplicationDbContext> _dbFactory;
 
-    [ObservableProperty] private ObservableCollection<Artist> _artists = new();
-    [ObservableProperty] private Artist? _selectedArtist;
-
-    [ObservableProperty] private ObservableCollection<Album> _albums = new();
-    [ObservableProperty] private Album? _selectedAlbum;
-
-    [ObservableProperty] private ObservableCollection<Track> _tracks = new();
-
-    [ObservableProperty] private string _totalDuration = "00:00";
-
-
     public MainWindowViewModel(IDbContextFactory<ApplicationDbContext> factory)
     {
         _dbFactory = factory;
         _ = LoadArtistsAsync();
     }
-    
+
+    [ObservableProperty]
+    public partial ObservableCollection<Artist> Artists { get; set; } = [];
+
+    [ObservableProperty]
+    public partial Artist? SelectedArtist { get; set; }
+
+    [ObservableProperty]
+    public partial ObservableCollection<Album> Albums { get; set; } = [];
+
+    [ObservableProperty]
+    public partial Album? SelectedAlbum { get; set; }
+
+    [ObservableProperty]
+    public partial ObservableCollection<Track> Tracks { get; set; } = [];
+
+    [ObservableProperty]
+    public partial string TotalDuration { get; set; } = "00:00";
+
+    // --- Логика добавления нового альбома ---
+    [RelayCommand]
+    public async Task OpenAddAlbumDialogAsync(Window owner)
+    {
+        // 1. Получаем ссылку на главное окно
+        var desktop = Avalonia.Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime;
+        var mainWindow = desktop?.MainWindow;
+        if (mainWindow == null)
+        {
+            return;
+        }
+
+        // 2. Инициализируем ViewModel (передаем список артистов для ComboBox)
+        var vm = new AddAlbumViewModel(Artists);
+        var dialog = new AddAlbumWindow
+        {
+            DataContext = vm,
+            Title = "Добавление нового диска",
+        };
+
+        // 3. Ждем только закрытия окна
+        var result = await dialog.ShowDialog<bool>(mainWindow);
+
+        if (result)
+        {
+            // ВАЖНО: Как и в редактировании, запускаем сохранение в фоновом потоке,
+            // чтобы UI-поток разблокировался немедленно.
+            _ = Task.Run(async () => await SaveNewAlbumLogic(vm));
+        }
+    }
+
+    [RelayCommand]
+    public async Task DeleteAlbumAsync(Album album)
+    {
+        if (album == null)
+        {
+            return;
+        }
+
+        // TODO: Подтверждение удаления - переделать на диалог)
+        using var context = await _dbFactory.CreateDbContextAsync();
+        using var uow = new UnitOfWork(context);
+
+        uow.Albums.Delete(album);
+        await uow.CompleteAsync();
+
+        Albums.Remove(album);
+        Tracks.Clear();
+    }
+
+    [RelayCommand]
+    public async Task EditAlbumAsync(Album album)
+    {
+        if (album == null)
+        {
+            return;
+        }
+
+        var desktop = Avalonia.Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime;
+        var mainWindow = desktop?.MainWindow;
+        if (mainWindow == null)
+        {
+            return;
+        }
+
+        // Подгружаем данные для формы
+        using var context = await _dbFactory.CreateDbContextAsync();
+        using var uow = new UnitOfWork(context);
+        var fullAlbum = await uow.Albums.GetFullAlbumDetailsAsync(album.Id);
+        if (fullAlbum == null)
+        {
+            return;
+        }
+
+        var vm = new AddAlbumViewModel(Artists);
+        vm.LoadAlbumData(fullAlbum);
+
+        var dialog = new AddAlbumWindow { DataContext = vm, Title = "Редактирование альбома" };
+
+        // Ждем только результат
+        var result = await dialog.ShowDialog<bool>(mainWindow);
+
+        if (result)
+        {
+            // ВАЖНО: Мы НЕ делаем сохранение прямо здесь.
+            // Мы запускаем его отдельно, чтобы UI-поток разблокировался немедленно.
+            _ = Task.Run(async () => await SaveEditedAlbumLogic(album.Id, vm));
+        }
+    }
+
+    [RelayCommand]
+    public async Task DeleteArtistAsync(Artist artist)
+    {
+        if (artist == null)
+        {
+            return;
+        }
+
+        var mainWindow = (Application.Current.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow as MainWindow;
+
+        if (mainWindow is not null)
+        {
+            bool confirm = await mainWindow.ConfirmDelete($"Вы уверены, что хотите удалить исполнителя '{SelectedArtist.Name}' и ВСЕ его альбомы?");
+
+            if (!confirm)
+            {
+                return;
+            }
+        }
+
+        // 1. Удаление из базы данных
+        using var context = await _dbFactory.CreateDbContextAsync();
+        using var uow = new UnitOfWork(context);
+
+        uow.Artists.Delete(artist);
+        await uow.CompleteAsync();
+
+        // 2. Обновление интерфейса
+        Artists.Remove(artist);
+
+        // Если удаленный артист был выбран — очищаем всё остальное
+        if (SelectedArtist == artist)
+        {
+            SelectedArtist = null;
+            Albums.Clear();
+            Tracks.Clear();
+        }
+    }
+
     [RelayCommand]
     private async Task LoadArtistsAsync()
-    {        
+    {
         using var context = await _dbFactory.CreateDbContextAsync();
         using var uow = new UnitOfWork(context);
         var list = await uow.Artists.GetAlphabeticalAsync();
@@ -54,15 +190,16 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         if (value != null) _ = LoadAlbumsAsync(value.Id);
     }
+
     partial void OnSelectedAlbumChanged(Album? value)
     {
-        if (value != null) _ = LoadTracksAsync(value.Id);        
+        if (value != null) _ = LoadTracksAsync(value.Id);
     }
 
     private async Task LoadAlbumsAsync(int artistId)
-    {        
+    {
         using var context = await _dbFactory.CreateDbContextAsync();
-        using var uow = new UnitOfWork(context);        
+        using var uow = new UnitOfWork(context);
         var list = await uow.Albums.GetByArtistWithImagesAsync(artistId);
 
         Albums = new ObservableCollection<Album>(list);
@@ -70,7 +207,7 @@ public partial class MainWindowViewModel : ViewModelBase
     }
 
     private async Task LoadTracksAsync(int albumId)
-    {        
+    {
         using var context = await _dbFactory.CreateDbContextAsync();
         using var uow = new UnitOfWork(context);
         var album = await uow.Albums.GetFullAlbumDetailsAsync(albumId);
@@ -81,37 +218,62 @@ public partial class MainWindowViewModel : ViewModelBase
                 .OrderBy(d => d.DiscNumber)
                 .SelectMany(d => d.Tracks.OrderBy(t => t.Number))
                 .ToList();
-            
+
             Tracks = new ObservableCollection<Track>(allTracks);
         }
     }
 
-    // --- Логика добавления нового альбома ---
-    [RelayCommand]
-    public async Task OpenAddAlbumDialogAsync(Window owner)
+    private async Task SaveEditedAlbumLogic(int albumId, AddAlbumViewModel vm)
     {
-        // 1. Получаем ссылку на главное окно
-        var desktop = Avalonia.Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime;
-        var mainWindow = desktop?.MainWindow;
-        if (mainWindow == null) return;
+        using var context = await _dbFactory.CreateDbContextAsync();
+        using var uow = new UnitOfWork(context);
 
-        // 2. Инициализируем ViewModel (передаем список артистов для ComboBox)
-        var vm = new AddAlbumViewModel(Artists);
-        var dialog = new AddAlbumWindow { DataContext = vm, Title = "Добавление нового диска" };
-
-        // 3. Ждем только закрытия окна
-        var result = await dialog.ShowDialog<bool>(mainWindow);
-
-        if (result)
+        // Загружаем альбом заново в НОВОМ контексте
+        var albumToUpdate = await uow.Albums.GetFullAlbumDetailsAsync(albumId);
+        if (albumToUpdate == null)
         {
-            // ВАЖНО: Как и в редактировании, запускаем сохранение в фоновом потоке,
-            // чтобы UI-поток разблокировался немедленно.
-            _ = Task.Run(async () => await SaveNewAlbumLogic(vm));
+            return;
         }
+
+        // Обновляем поля
+        albumToUpdate.Title = vm.Title;
+        albumToUpdate.ReleaseYear = (int)vm.ReleaseYear;
+        albumToUpdate.Label = vm.Label;
+        albumToUpdate.Packaging = vm.SelectedPackaging;
+
+        if (vm.CoverData != null)
+        {
+            albumToUpdate.Image ??= new AlbumImage();
+            albumToUpdate.Image.Data = vm.CoverData;
+        }
+
+        // Пересобираем диски и треки
+        albumToUpdate.Discs.Clear();
+        var tracksByDiscs = vm.NewTracks.GroupBy(t => t.PhysicalDisc.DiscNumber);
+        foreach (var group in tracksByDiscs)
+        {
+            var disc = new PhysicalDisc { DiscNumber = group.Key };
+            foreach (var t in group)
+            {
+                t.PhysicalDisc = disc;
+                disc.Tracks.Add(t);
+            }
+
+            albumToUpdate.Discs.Add(disc);
+        }
+
+        uow.Albums.Update(albumToUpdate);
+        await uow.CompleteAsync();
+
+        // Возвращаемся в UI поток ТОЛЬКО для обновления списков
+        await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(async () =>
+        {
+            await LoadAlbumsAsync(albumToUpdate.ArtistId);
+        });
     }
 
     private async Task SaveNewAlbumLogic(AddAlbumViewModel vm)
-    {        
+    {
         using var context = await _dbFactory.CreateDbContextAsync();
         using var uow = new UnitOfWork(context);
 
@@ -141,11 +303,13 @@ public partial class MainWindowViewModel : ViewModelBase
             Label = vm.Label,
             CatalogNumber = vm.CatalogNumber,
             Packaging = vm.SelectedPackaging,
-            ArtistId = artist.Id
+            ArtistId = artist.Id,
         };
 
         if (vm.CoverData != null)
+        {
             newAlbum.Image = new AlbumImage { Data = vm.CoverData };
+        }
 
         // 3. Группировка треков
         var tracksByDiscs = vm.NewTracks.GroupBy(t => t.PhysicalDisc.DiscNumber);
@@ -157,6 +321,7 @@ public partial class MainWindowViewModel : ViewModelBase
                 t.PhysicalDisc = disc;
                 disc.Tracks.Add(t);
             }
+
             newAlbum.Discs.Add(disc);
         }
 
@@ -171,132 +336,5 @@ public partial class MainWindowViewModel : ViewModelBase
                 await LoadAlbumsAsync(artist.Id);
             }
         });
-    }    
-
-    [RelayCommand]
-    public async Task DeleteAlbumAsync(Album album)
-    {
-        if (album == null) return;
-
-        // TODO: Подтверждение удаления - переделать на диалог)
-        
-        using var context = await _dbFactory.CreateDbContextAsync();
-        using var uow = new UnitOfWork(context);
-        
-        uow.Albums.Delete(album);
-        await uow.CompleteAsync();
-        
-        Albums.Remove(album);
-        Tracks.Clear();
     }
-
-    [RelayCommand]
-    public async Task EditAlbumAsync(Album album)
-    {
-        if (album == null) return;
-
-        var desktop = Avalonia.Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime;
-        var mainWindow = desktop?.MainWindow;
-        if (mainWindow == null) return;
-
-        // Подгружаем данные для формы        
-        using var context = await _dbFactory.CreateDbContextAsync();
-        using var uow = new UnitOfWork(context);
-        var fullAlbum = await uow.Albums.GetFullAlbumDetailsAsync(album.Id);
-        if (fullAlbum == null) return;
-
-        var vm = new AddAlbumViewModel(Artists);
-        vm.LoadAlbumData(fullAlbum);
-
-        var dialog = new AddAlbumWindow { DataContext = vm, Title = "Редактирование альбома" };
-
-        // Ждем только результат
-        var result = await dialog.ShowDialog<bool>(mainWindow);
-
-        if (result)
-        {
-            // ВАЖНО: Мы НЕ делаем сохранение прямо здесь. 
-            // Мы запускаем его отдельно, чтобы UI-поток разблокировался немедленно.
-            _ = Task.Run(async () => await SaveEditedAlbumLogic(album.Id, vm));
-        }
-    }
-
-    private async Task SaveEditedAlbumLogic(int albumId, AddAlbumViewModel vm)
-    {        
-        using var context = await _dbFactory.CreateDbContextAsync();
-        using var uow = new UnitOfWork(context);
-
-        // Загружаем альбом заново в НОВОМ контексте
-        var albumToUpdate = await uow.Albums.GetFullAlbumDetailsAsync(albumId);
-        if (albumToUpdate == null) return;
-
-        // Обновляем поля
-        albumToUpdate.Title = vm.Title;
-        albumToUpdate.ReleaseYear = (int)vm.ReleaseYear;
-        albumToUpdate.Label = vm.Label;
-        albumToUpdate.Packaging = vm.SelectedPackaging;
-
-        if (vm.CoverData != null)
-        {
-            if (albumToUpdate.Image == null) albumToUpdate.Image = new AlbumImage();
-            albumToUpdate.Image.Data = vm.CoverData;
-        }
-
-        // Пересобираем диски и треки
-        albumToUpdate.Discs.Clear();
-        var tracksByDiscs = vm.NewTracks.GroupBy(t => t.PhysicalDisc.DiscNumber);
-        foreach (var group in tracksByDiscs)
-        {
-            var disc = new PhysicalDisc { DiscNumber = group.Key };
-            foreach (var t in group)
-            {
-                t.PhysicalDisc = disc;
-                disc.Tracks.Add(t);
-            }
-            albumToUpdate.Discs.Add(disc);
-        }
-
-        uow.Albums.Update(albumToUpdate);
-        await uow.CompleteAsync();
-
-        // Возвращаемся в UI поток ТОЛЬКО для обновления списков
-        await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(async () =>
-        {
-            await LoadAlbumsAsync(albumToUpdate.ArtistId);
-        });
-    }
-
-    [RelayCommand]
-    public async Task DeleteArtistAsync(Artist artist)
-    {
-        if (artist == null) return;
-
-        var mainWindow = (Application.Current.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow as MainWindow;
-
-        if (mainWindow != null)
-        {
-            bool confirm = await mainWindow.ConfirmDelete($"Вы уверены, что хотите удалить исполнителя '{SelectedArtist.Name}' и ВСЕ его альбомы?");
-
-            if (!confirm) return;
-        }
-
-        // 1. Удаление из базы данных        
-        using var context = await _dbFactory.CreateDbContextAsync();
-        using var uow = new UnitOfWork(context);
-
-        uow.Artists.Delete(artist);
-        await uow.CompleteAsync();
-
-        // 2. Обновление интерфейса
-        Artists.Remove(artist);
-
-        // Если удаленный артист был выбран — очищаем всё остальное
-        if (SelectedArtist == artist)
-        {
-            SelectedArtist = null;
-            Albums.Clear();
-            Tracks.Clear();
-        }
-    }
-
 }

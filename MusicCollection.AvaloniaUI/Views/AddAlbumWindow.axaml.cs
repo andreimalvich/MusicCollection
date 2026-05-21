@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
@@ -12,16 +12,23 @@ public partial class AddAlbumWindow : Window
     {
         InitializeComponent();
     }
+
     private async void SelectImage_Click(object? sender, RoutedEventArgs e)
     {
         var topLevel = GetTopLevel(this);
-        if (topLevel == null) return;
+        if (topLevel == null)
+        {
+            return;
+        }
 
         var files = await topLevel.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
         {
             Title = "Выберите изображение обложки",
-            FileTypeFilter = new[] { FilePickerFileTypes.ImageAll },
-            AllowMultiple = false
+            FileTypeFilter =
+            [
+                FilePickerFileTypes.ImageAll,
+            ],
+            AllowMultiple = false,
         });
 
         if (files.Count > 0)
@@ -38,5 +45,6 @@ public partial class AddAlbumWindow : Window
     }
 
     private void Save_Click(object? sender, RoutedEventArgs e) => Close(true);
+
     private void Cancel_Click(object? sender, RoutedEventArgs e) => Close(false);
 }

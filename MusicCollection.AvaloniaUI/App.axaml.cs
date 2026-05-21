@@ -1,29 +1,18 @@
-using Avalonia;
-using Avalonia.Controls;
+﻿using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
-using Avalonia.Data.Core;
-using Avalonia.Data.Core.Plugins;
 using Avalonia.Markup.Xaml;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using MsBox.Avalonia;
-using MsBox.Avalonia.Enums;
 using MusicCollection.AvaloniaUI.ViewModels;
 using MusicCollection.AvaloniaUI.Views;
-using MusicCollection.Core.EfStructures;
-using System;
-using System.IO;
-using System.Linq;
 
 namespace MusicCollection.AvaloniaUI;
 
 public partial class App : Application
 {
-    public static IServiceProvider ServiceProvider { get; private set; } = null!;    
+    public static System.IServiceProvider ServiceProvider { get; private set; } = null!;
 
     public override void Initialize()
-    {        
+    {
         AvaloniaXamlLoader.Load(this);
     }
 
@@ -37,9 +26,9 @@ public partial class App : Application
         {
             if (!bootstrapper.IsDatabaseAvailable(ServiceProvider))
             {
-                //throw new InvalidOperationException(
-                //"Критическая ошибка: База данных MusicCollectionDB недоступна. " +
-                //"Убедитесь, что SQL Server запущен и строка подключения в appsettings.json верна.");
+                // throw new InvalidOperationException(
+                // "Критическая ошибка: База данных MusicCollectionDB недоступна. " +
+                // "Убедитесь, что SQL Server запущен и строка подключения в appsettings.json верна.");
                 var errorWin = new ErrorWindow();
                 errorWin.SetMessage("Критическая ошибка: База данных MusicCollectionDB недоступна. " +
                     "Проверьте настройки SQL Server.");
@@ -52,7 +41,7 @@ public partial class App : Application
                 desktop.MainWindow = mainWindow;
             }
         }
-        
+
         base.OnFrameworkInitializationCompleted();
-    }    
+    }
 }

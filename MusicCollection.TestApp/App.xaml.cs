@@ -24,7 +24,7 @@ public partial class App : Application
         {            
             optionsBuilder.UseSqlServer(connectionString);
             
-            using (ApplicationDbContext context = new ApplicationDbContext(optionsBuilder.Options))
+            using (ApplicationDbContext context = new (optionsBuilder.Options))
             {
 
 

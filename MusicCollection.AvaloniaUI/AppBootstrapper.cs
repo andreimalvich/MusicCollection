@@ -1,18 +1,18 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿// using System;
+using System.IO;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MusicCollection.AvaloniaUI.ViewModels;
 using MusicCollection.AvaloniaUI.Views;
 using MusicCollection.Core.EfStructures;
-using System;
-using System.IO;
 
 namespace MusicCollection.AvaloniaUI;
 
 public class AppBootstrapper
 {
     private IConfiguration? _configuration;
-    
+
     public void Initialize()
     {
         _configuration = new ConfigurationBuilder()
@@ -21,13 +21,13 @@ public class AppBootstrapper
             .Build();
     }
 
-    public IServiceProvider CreateServiceProvider()
+    public System.IServiceProvider CreateServiceProvider()
     {
         var services = new ServiceCollection();
 
         var connectionString = _configuration?.GetConnectionString("DefaultConnection")
-            ?? throw new InvalidOperationException("Строка подключения не найдена в appsettings.json");
-        
+            ?? throw new System.InvalidOperationException("Строка подключения не найдена в appsettings.json");
+
         services.AddPooledDbContextFactory<ApplicationDbContext>(options =>
             options.UseSqlServer(connectionString));
 
@@ -37,7 +37,7 @@ public class AppBootstrapper
         return services.BuildServiceProvider();
     }
 
-    public bool IsDatabaseAvailable(IServiceProvider serviceProvider)
+    public bool IsDatabaseAvailable(System.IServiceProvider serviceProvider)
     {
         try
         {
